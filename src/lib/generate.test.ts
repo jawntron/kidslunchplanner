@@ -120,10 +120,10 @@ describe('generateWeek - core constraints (real seed bank)', () => {
       const { week } = generateWeek(seedFoods, { modes: mixedModes(), random: seededRandom(seed) });
       const byId = new Map(seedFoods.map((f) => [f.id, f]));
       for (const day of WEEKDAYS) {
-        const total = Object.values(week[day].slots).reduce((sum, id) => {
-          if (!id) return sum;
-          return sum + (byId.get(id)?.prepMinutes ?? 0);
-        }, 0);
+        // A combo dish occupies two slots with the same food id but costs its
+        // prepMinutes once - dedupe before summing, same as buildPrepPlan does.
+        const uniqueIds = new Set(Object.values(week[day].slots).filter((id): id is string => !!id));
+        const total = [...uniqueIds].reduce((sum, id) => sum + (byId.get(id)?.prepMinutes ?? 0), 0);
         expect(total).toBeLessThanOrEqual(15);
       }
     }
@@ -255,6 +255,32 @@ describe('generateWeek - locking', () => {
         if (day === 'Mon') continue;
         const id = week[day].slots.carb;
         if (id) expect(byId.get(id)!.variety).not.toBe(lockedVariety);
+      }
+    }
+  });
+});
+
+describe('generateWeek - morning prep budget is a real constraint', () => {
+  it('refuses to combine two foods that together exceed 15 minutes', () => {
+    // Two 10-minute carbs with no cheaper alternative: any day must pick at
+    // most one of them, proving the budget check actually excludes
+    // candidates rather than just happening to pass by luck.
+    const bank: FoodBank = [
+      food({ id: 'carb-a', covers: ['carb'], variety: 'bagel', base: 'wheat', prepMinutes: 10, preference: 'loved' }),
+      food({ id: 'carb-b', covers: ['carb'], variety: 'pasta', base: 'wheat', prepMinutes: 10, preference: 'loved' }),
+      food({ id: 'protein-a', covers: ['protein'], variety: 'egg', base: 'egg', prepMinutes: 10, preference: 'loved' }),
+      food({ id: 'veg-a', covers: ['veg'], variety: 'cucumber', base: 'vegetable', prepMinutes: 0, preference: 'ok' }),
+      food({ id: 'treat-a', covers: ['treat'], variety: 'cracker', base: 'wheat', prepMinutes: 0, preference: 'ok' }),
+    ];
+    for (let seed = 0; seed < 20; seed++) {
+      const { week } = generateWeek(bank, { modes: allAmbient(), random: seededRandom(seed) });
+      const byId = new Map(bank.map((f) => [f.id, f]));
+      for (const day of WEEKDAYS) {
+        const total = Object.values(week[day].slots).reduce((sum, id) => {
+          if (!id) return sum;
+          return sum + (byId.get(id)?.prepMinutes ?? 0);
+        }, 0);
+        expect(total).toBeLessThanOrEqual(15);
       }
     }
   });

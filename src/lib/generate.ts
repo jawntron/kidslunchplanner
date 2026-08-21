@@ -17,6 +17,10 @@ const COMPARTMENTS: Compartment[] = ['carb', 'protein', 'veg', 'treat'];
  *  rule is a hard constraint but this one bends). */
 const MAX_DAYS_PER_BASE = 2;
 
+/** Hard cap on same-day-morning prep minutes (packing itself isn't counted -
+ *  only actual cooking/assembly steps via `morningStep`/`prepMinutes`). */
+const MORNING_BUDGET_MINUTES = 15;
+
 const PREFERENCE_WEIGHT: Record<Food['preference'], number> = {
   loved: 6,
   ok: 3,
@@ -142,6 +146,15 @@ function runAttempt(
 
   const unfilled: UnfilledSlot[] = [];
 
+  // A combo dish already occupying two slots costs its prepMinutes once, not
+  // once per slot - so this dedupes by food id before summing.
+  const morningMinutesUsed = (plan: DayPlan): number => {
+    const ids = new Set(Object.values(plan.slots).filter((id): id is string => !!id));
+    let total = 0;
+    for (const id of ids) total += byId.get(id)?.prepMinutes ?? 0;
+    return total;
+  };
+
   const assign = (plan: DayPlan, food: Food) => {
     // A combo dish (covers.length > 1, e.g. chicken fried rice covering both
     // carb and protein) fills every compartment it covers at once, not just
@@ -178,6 +191,10 @@ function runAttempt(
       if (food.covers.includes('carb') && food.covers.includes('protein')) {
         if (usedCarbVariety.has(food.variety) || usedProteinVariety.has(food.variety)) return false;
       }
+
+      // Morning-of prep is capped per day; a combo dish only costs its
+      // prepMinutes once even though it fills multiple compartments.
+      if (morningMinutesUsed(plan) + food.prepMinutes > MORNING_BUDGET_MINUTES) return false;
 
       return true;
     });
