@@ -191,6 +191,25 @@ describe('generateWeek - combo dishes', () => {
 
 describe('generateWeek - soft same-base cap', () => {
   it('allows roasted chicken and dino nuggets in the same week (different variety, same base)', () => {
+    // Isolated fixture rather than the full seed bank: the real bank now has
+    // six chicken presentations competing for the same soft cap, so whether
+    // these two *specific* items land in one random week is a coin flip
+    // that has nothing to do with the mechanism being tested here - the
+    // variety/base distinction itself, proven on a small, controlled bank.
+    const bank: FoodBank = [
+      food({ id: 'protein-chicken-roasted', covers: ['protein'], variety: 'chicken-roasted', base: 'chicken', modes: ['chilled', 'hot'], preference: 'loved' }),
+      food({ id: 'protein-nugget', covers: ['protein'], variety: 'nugget', base: 'chicken', modes: ['hot'], preference: 'loved' }),
+      food({ id: 'protein-egg', covers: ['protein'], variety: 'egg', base: 'egg', modes: ['chilled', 'hot'], preference: 'ok' }),
+      food({ id: 'protein-bean', covers: ['protein'], variety: 'bean', base: 'legume', modes: ['chilled', 'hot'], preference: 'ok' }),
+      food({ id: 'protein-cheese', covers: ['protein'], variety: 'cheese', base: 'dairy', modes: ['chilled', 'hot'], preference: 'ok' }),
+      food({ id: 'carb-a', covers: ['carb'], variety: 'bagel', base: 'wheat', modes: ['chilled', 'hot'], preference: 'ok' }),
+      food({ id: 'carb-b', covers: ['carb'], variety: 'pasta', base: 'wheat', modes: ['chilled', 'hot'], preference: 'ok' }),
+      food({ id: 'carb-c', covers: ['carb'], variety: 'noodle', base: 'wheat', modes: ['chilled', 'hot'], preference: 'ok' }),
+      food({ id: 'carb-d', covers: ['carb'], variety: 'rice', base: 'rice', modes: ['chilled', 'hot'], preference: 'ok' }),
+      food({ id: 'carb-e', covers: ['carb'], variety: 'tortilla', base: 'wheat', modes: ['chilled', 'hot'], preference: 'ok' }),
+      food({ id: 'veg-a', covers: ['veg'], variety: 'cucumber', base: 'vegetable', modes: ['chilled', 'hot'], preference: 'ok' }),
+      food({ id: 'treat-a', covers: ['treat'], variety: 'cracker', base: 'wheat', modes: ['chilled', 'hot'], preference: 'ok' }),
+    ];
     // Dino nuggets are hot-only (cold nuggets aren't appetizing), so this
     // needs at least one hot day in the mix for both to have a chance.
     const modes: Record<Weekday, PackMode> = {
@@ -202,7 +221,7 @@ describe('generateWeek - soft same-base cap', () => {
     };
     let bothAppear = false;
     for (let seed = 0; seed < 40 && !bothAppear; seed++) {
-      const { week } = generateWeek(seedFoods, { modes, random: seededRandom(seed) });
+      const { week } = generateWeek(bank, { modes, random: seededRandom(seed) });
       const ids = allFoodIdsInWeek(week);
       if (ids.includes('protein-chicken-roasted') && ids.includes('protein-nugget')) {
         bothAppear = true;
@@ -211,7 +230,7 @@ describe('generateWeek - soft same-base cap', () => {
     expect(bothAppear).toBe(true);
   });
 
-  it('does not let a protein base take over more than 2 days when alternatives exist', () => {
+  it('does not let a protein base take over more than 3 days when alternatives exist', () => {
     for (let seed = 0; seed < 20; seed++) {
       const { week } = generateWeek(seedFoods, { modes: allChilled(), random: seededRandom(seed) });
       const byId = new Map(seedFoods.map((f) => [f.id, f]));
@@ -223,7 +242,7 @@ describe('generateWeek - soft same-base cap', () => {
         baseCounts.set(base, (baseCounts.get(base) ?? 0) + 1);
       }
       for (const count of baseCounts.values()) {
-        expect(count).toBeLessThanOrEqual(2);
+        expect(count).toBeLessThanOrEqual(3);
       }
     }
   });

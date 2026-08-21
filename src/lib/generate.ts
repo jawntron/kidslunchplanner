@@ -14,8 +14,11 @@ const COMPARTMENTS: Compartment[] = ['carb', 'protein', 'veg', 'treat'];
 
 /** At most this many days per week may share a protein `base` (soft - see
  *  modeSatisfied comment below for why the analogous carb/protein `variety`
- *  rule is a hard constraint but this one bends). */
-const MAX_DAYS_PER_BASE = 2;
+ *  rule is a hard constraint but this one bends). Chicken alone now spans 6
+ *  genuinely different presentations (roasted, nuggets, katsu, fried rice,
+ *  musubi, bao), so 3 leaves room for that real variety without letting any
+ *  one base take over the week. */
+const MAX_DAYS_PER_BASE = 3;
 
 /** Hard cap on same-day-morning prep minutes (packing itself isn't counted -
  *  only actual cooking/assembly steps via `morningStep`/`prepMinutes`). */
