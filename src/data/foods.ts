@@ -674,23 +674,6 @@ export const seedFoods: Food[] = [
     preference: 'ok',
   },
   {
-    id: 'combo-chicken-congee',
-    name: 'Chicken congee (rice porridge)',
-    covers: ['carb', 'protein'],
-    variety: 'congee',
-    base: 'chicken',
-    modes: ['hot'],
-    prepMinutes: 3,
-    batchStep: 'Simmer a big pot of chicken congee Sunday (rice, chicken broth, shredded chicken, ginger), portion and freeze in 5.',
-    morningStep: 'Microwave a portion, preheat thermos with boiling water 5 min, empty and fill.',
-    ingredients: [
-      { item: 'Rice', qty: '1 cup dry', aisle: 'pantry' },
-      { item: 'Chicken broth', qty: '6 cups', aisle: 'pantry' },
-      { item: 'Cooked shredded chicken', qty: '1 cup', aisle: 'meat' },
-    ],
-    preference: 'ok',
-  },
-  {
     id: 'combo-rice-noodle-salad',
     name: 'Cold rice noodle salad with chicken and cucumber',
     covers: ['carb', 'protein'],
