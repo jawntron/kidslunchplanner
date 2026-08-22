@@ -6,7 +6,6 @@ import PrepView from './components/PrepView';
 import FoodsView from './components/FoodsView';
 import SwapSheet from './components/SwapSheet';
 import { generateWeek, regenerateCells } from './lib/generate';
-import { modeSatisfied } from './lib/generate';
 import { loadState, saveState } from './lib/storage';
 import type { Compartment, Food, FoodBank, PackMode, Week, Weekday } from './types';
 import { WEEKDAYS } from './types';
@@ -60,25 +59,21 @@ export default function App() {
       const next: Week = structuredClone(base);
       next[day].mode = mode;
 
-      // Anything unlocked that no longer fits the new mode gets cleared so
-      // it can be re-rolled - never left silently showing an unsafe food.
-      const toClear: Compartment[] = [];
-      for (const c of COMPARTMENTS) {
-        const foodId = next[day].slots[c];
-        if (!foodId || next[day].locked[c]) continue;
-        const food = byId.get(foodId);
-        if (food && !modeSatisfied(food, mode)) {
-          next[day].slots[c] = undefined;
-          toClear.push(c);
-        }
+      // Re-roll every unlocked cell for the day, not just ones that became
+      // unsafe. An ambient-safe food (bagel, cheese, cucumber) stays valid
+      // under every mode, so only clearing invalid cells meant switching to
+      // Ice Pack or Thermos could silently change nothing at all - the
+      // toggle needs to visibly show what that mode actually unlocks.
+      const targets = COMPARTMENTS.filter((c) => !next[day].locked[c]).map((compartment) => ({
+        day,
+        compartment,
+      }));
+      for (const { compartment } of targets) {
+        next[day].slots[compartment] = undefined;
       }
 
-      if (toClear.length === 0) return next;
-      const result = regenerateCells(
-        foods,
-        next,
-        toClear.map((compartment) => ({ day, compartment })),
-      );
+      if (targets.length === 0) return next;
+      const result = regenerateCells(foods, next, targets);
       setWarning(result.warning);
       return result.week;
     });
